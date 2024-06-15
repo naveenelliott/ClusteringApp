@@ -12,7 +12,7 @@ st.title ("Player Clustering Calculator")
 st.markdown("Select The Player to See their Position Group and Closest Player in the Club")
 
 
-clustered = pd.read_csv('ClusteringBoltsPlayers/EndKMeansClustering.csv')
+clustered = pd.read_csv('EndKMeansClustering.csv')
 clustered.sort_values('Player Full Name', ascending=True, inplace=True)
 
 def convert_to_list(cell):
@@ -57,7 +57,7 @@ st.write(f"{selected_player}'s closest statistics with {closest_player[0]} are {
 
 
 
-update_bolts = pd.read_csv('ClusteringBoltsPlayers/PCAPlayers.csv')
+update_bolts = pd.read_csv('PCAPlayers.csv')
 
 cluster_highlight = update_bolts.loc[update_bolts['Player Full Name'] == selected_player]
 selected_cluster = cluster_highlight['Cluster'].values[0]
