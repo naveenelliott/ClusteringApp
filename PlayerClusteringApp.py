@@ -122,7 +122,7 @@ fig.add_trace(
         y=selected_player_trace['PC2'],
         marker=dict(
             color='blue',
-            size=15,
+            size=12,
         ),
         name=selected_player,
         hoverinfo='name',
