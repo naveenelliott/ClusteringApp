@@ -4,6 +4,7 @@ from mplsoccer import Radar, FontManager, grid
 import plotly.express as px
 from sklearn.preprocessing import StandardScaler
 import plotly.graph_objects as go
+import matplotlib.patches as mpatches
 
 st.set_page_config(page_title='Comparison Radars')
 
@@ -11,14 +12,33 @@ st.title("Comparison Radars")
 
 df = st.session_state.clustered_copy
 
+df = df.sort_values('Order', ascending=False)
+df.reset_index(drop=True, inplace=True)
+
+temp_df = df.drop(0)
+players = list(temp_df['Player Full Name'].unique())
+compare_player = st.selectbox('Select the Player to compare in the Radar Chart from the Positional Cluster:', players)
+
+temp_df = df.loc[df['Player Full Name'] == compare_player]
+temp_df.reset_index(drop=True, inplace=True)
+
+if temp_df['Order'][0] == 1:
+    sub_string = 'his closest player'
+else:
+    sub_string = 'a similar player in his cluster'
+
 selected_player = df['Player Full Name'][0]
-compare_player = df['Player Full Name'][1]
 
-st.markdown(f"This is a comparison of the {selected_player} and his compared player {compare_player} mentioned in the Player Clustering. The radar charts are made up of percentiles amongst all players in the club.")
+st.session_state["prev_player"] = selected_player
+
+want = [selected_player, compare_player]
+df = df.loc[df['Player Full Name'].isin(want)]
+df.reset_index(drop=True, inplace=True)
+del df['Order']
+
+st.markdown(f"This is a comparison of the {selected_player} and {sub_string} {compare_player} mentioned in the Player Clustering. The radar charts are made up of percentiles amongst all players in the club.")
 
 
-#       'Total Crosses', 'Total Long', 'Total Forward', 'Total Pass',
-#       'Total Recoveries', 'Total Interceptions'
 df.rename(columns={'Progr Regain ': 'Progr Regain', 'Blocked Cross': 'Blk Cross', 'Efforts on Goal': 'Shots', 'Pass into Oppo Box': 'Pass into 18', 
                    'Blocked Shot': 'Blk Shot', 'Pass Completion ': 'Pass %', 'Progr Pass Completion ': 'Forward Pass %', 
                    'Total Tackles': 'Tackles', 'Total Def Aerials': 'Def Aerials', 'Total Clears': 'Clears', 'Total Att Aerials': 'Att Aerials', 
@@ -55,5 +75,10 @@ ax.scatter(vertices2[:, 0], vertices2[:, 1],
            c='black', edgecolors='black', marker='o', s=50, zorder=2)
 range_labels = radar.draw_range_labels(ax=ax, fontsize=11.5)
 param_labels = radar.draw_param_labels(ax=ax, fontsize=13)
+
+legend_radar = mpatches.Patch(color='#6bb2e2', alpha=0.8, label=f'{selected_player}')
+legend_compare = mpatches.Patch(color='black', alpha=0.5, label=f'{compare_player}')
+
+ax.legend(handles=[legend_radar, legend_compare], loc='best')
 
 st.pyplot(fig)
