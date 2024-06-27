@@ -17,7 +17,7 @@ st.title ("Player Clustering Calculator")
 st.markdown("Select The Player to See their Position Group and Closest Player in the Club")
 
 
-clustered = pd.read_csv('EndKMeansClustering.csv')
+clustered = pd.read_csv('ClusteringBoltsPlayers/EndKMeansClustering.csv')
 clustered.sort_values('Player Full Name', ascending=True, inplace=True)
 
 clustered_copy = clustered.copy()
@@ -61,7 +61,14 @@ clustered['Other Cluster'] = clustered['Cluster'].replace(cluster_mapping)
 clustered['Cluster Description'] = clustered['Cluster'].replace(cluster_mapping2)
 
 players = list(clustered['Player Full Name'].unique())
-selected_player = st.selectbox('Choose the Bolts player:', players)
+
+# Initialize prev_player in session state if not already present
+if "prev_player" not in st.session_state:
+    st.session_state["prev_player"] = players[0]  # Default to the first player if no previous selection
+
+# Select player with the previous player as the default value
+selected_player = st.selectbox('Choose the Bolts player:', players, index=players.index(st.session_state["prev_player"]))
+
 clustered_player = clustered.loc[clustered['Player Full Name'] == selected_player]
 
 
@@ -77,9 +84,9 @@ st.write(f"{selected_player}'s closest comparable player is {closest_player[0]}.
 
 st.write(f"{selected_player}'s closest statistics with {closest_player[0]} are {closest_player_stats[0][0]}, {closest_player_stats[0][1]}, and {closest_player_stats[0][2]}.")
 
-center_df = pd.read_csv('ClusterCentersData.csv')
+center_df = pd.read_csv('Streamlit/ClusterCentersData.csv')
 
-update_bolts = pd.read_csv('PCAPlayers.csv')
+update_bolts = pd.read_csv('ClusteringBoltsPlayers/PCAPlayers.csv')
 
 cluster_highlight = update_bolts.loc[update_bolts['Player Full Name'] == selected_player]
 selected_cluster = cluster_highlight['Cluster'].values[0]
@@ -104,6 +111,7 @@ fig.add_trace(
 )
 
 selected_cluster_df = update_bolts.loc[update_bolts['Cluster'] == selected_cluster]
+cluster_pnames = selected_cluster_df['Player Full Name']
 fig.add_trace(
     go.Scatter(
         mode='markers',
@@ -161,8 +169,14 @@ fig.update_layout(
     title_font_size=20,  # Adjust the font size as needed
     title_x=0.2,  # Center the title horizontally
     title_y=0.85,
-    xaxis_title='',
-    yaxis_title='',
+    xaxis=dict(
+        title='',
+        showticklabels=False  # Hide x-axis tick labels
+    ),
+    yaxis=dict(
+        title='',
+        showticklabels=False  # Hide y-axis tick labels
+    ),
     hovermode='closest',  # Show closest data on hover
     showlegend=True,
     annotations=[
@@ -211,7 +225,27 @@ def calculate_percentiles(df):
 clustered_copy = calculate_percentiles(clustered_copy)
 
 player_desire = [selected_player, closest_player[0]]
-clustered_copy = clustered_copy.loc[(clustered_copy['Player Full Name'].isin(player_desire))]
-clustered_copy = clustered_copy.set_index('Player Full Name').loc[player_desire].reset_index()
+#clustered_copy = clustered_copy.loc[(clustered_copy['Player Full Name'].isin(player_desire))]
+#clustered_copy = clustered_copy.set_index('Player Full Name').loc[player_desire].reset_index()
+
+compared_player_df = clustered_copy.loc[clustered_copy['Player Full Name'] == closest_player[0]]
+compared_player_df['Order'] = 1
+
+clustered_copy = clustered_copy.loc[(clustered_copy['Player Full Name'].isin(cluster_pnames))]
+clustered_copy = clustered_copy.set_index('Player Full Name').loc[cluster_pnames].reset_index()
+clustered_copy['Order'] = 0
+
+# Create boolean mask
+mask = clustered_copy['Player Full Name'] == selected_player
+mask2 = clustered_copy['Player Full Name'] == closest_player[0]
+
+# Use .loc to modify 'Order' column where mask is True
+clustered_copy.loc[mask, 'Order'] = 2
+if not clustered_copy.loc[mask2].empty:
+    clustered_copy.loc[mask2, 'Order'] = 1
+else:
+    clustered_copy = pd.concat([clustered_copy, compared_player_df], ignore_index=True)
+
+
 
 st.session_state.clustered_copy = clustered_copy
